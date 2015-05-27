@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<!-- Put site-specific property overrides in this file. -->
+
+<configuration>
+<property>
+    <name>neo4j.host</name>
+    <value>http://localhost</value>
+    <discript></discript>
+  </property>
+<property>
+    <name>neo4j.port</name>
+    <value>7474</value>
+</property>
+<property>
+    <name>neo4j.db.path</name>
+    <value>/db/data</value>
+</property>
+<property>
+    <name>neo4j.user</name>
+    <value>root</value>
+</property>
+<property>
+    <name>neo4j.password</name>
+    <value></value>
+</property>
+<property>
+    <name>neo4j.init.data</name>
+    <value>../data/t_gdatababa_data.csv</value>
+</property>
+</configuration>
