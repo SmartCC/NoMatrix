@@ -36,26 +36,47 @@ initGraph<-function(graph,conf){
   #商品id列表
   brands<-unique(gdata$brand_id)
   
+  addIndex(graph,"USERID","uid")
   #创建用户图节点
-  userNodes<-llply(users,function(x) createNode(graph,"USERID",id=x))
+  userNodes<-llply(users,function(x) createNode(graph,"USERID",uid=x))
   #将返回结果给数据命名索引
   names(userNodes)<-users
   #添加限制函数，使插入的数据唯一
-  addConstraint(graph, "USERID", "id")
+  addConstraint(graph, "USERID", "uid")
+  
   #创建商品图节点
-  brandNodes<-llply(brands,function(x) createNode(graph,"BRANDID",id=x))
+  addIndex(graph,"BRANDID","uid")
+  brandNodes<-llply(brands,function(x) createNode(graph,"BRANDID",bid=x))
   names(brandNodes)<-brands
-  addConstraint(graph,"BRANDID","id")
+  addConstraint(graph,"BRANDID","bid")
   
   #创建联系
   a_ply(gdata,1,function(df) createRel(userNodes[[df$user_id]],df$type,brandNodes[[df$brand_id]]))
   
 }
 
-#获取推荐
-getRecommends<-function(userid){
-  brands<-cypher(graph,"match n-[]->ms<-[]-ns<-[]-ms2-[]->ns2 where n.id=userid return ms2.id as brandId,count(ns) as fre",userid=userid)
-  #可以添加去重
-  #给结果排序
-  brands[order(-brands$fre),]
+user_cf.recom<-function(userid){
+  user_brands<-cypher(graph,paste("match (n:USERID {uid:'",userid,"'})-[:`1`]->(ms:BRANDID)<-[:`1`]-(ns:USERID) return ns.uid as uid ,count(ms) as fre",sep = ""))
+  sample_user_brands<-cypher(graph,paste("match (n:USERID {uid:'",userid,"'})-[:`1`]->(m:BRANDID)<-[:`1`]-(ns:USERID)-[:`1`]->(ms:BRANDID) return ns.uid as uid ,count(ms) as fre",sep = ""))
+  #
+  user_brands$fre<-as.numeric(user_brands$fre)
+  rownames(user_brands)<-user_brands$uid
+  #
+  sample_user_brands$fre<-as.numeric(sample_user_brands$fre)
+  rownames(sample_user_brands)<-sample_user_brands$uid
+  
+  users<-unique(c(user_brands$uid,sample_user_brands))
+  user_sample<-score=user_brands[users]/sample_user_brands[users]
+  names(user_sample)<-users
+  
+  brands<-cypher(graph,paste("match (n:USERID {uid:'",userid,
+                             "'})-[:`1`]->(m:BRANDID)<-[:`1`]-(ns:USERID)-[:`1`]->(ms:BRANDID) where m.bid<>ms.bid return ns.uid as uid ,ms as bid",sep = ""))
+  bid_score<-ddply(brands,.(bid),function(df){
+    #获取每个商品对应的uid
+    uids<-unique(df$uid)
+    #计算相似度
+    data.frame(score=sum(user_sample[uids]))
+  })
+  #根据得分进行降序排序，可以根据设定的阈值进行筛选
+  bid_score[order(bid_score$score,decreasing = TRUE),]
 }
