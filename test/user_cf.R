@@ -1,5 +1,5 @@
 getRecMatrix<-function(){
-  userCf<-read.csv("userCf.csv",header = FALSE)
+    userCf<-read.csv("../data/userCf.csv",header = FALSE)
   names(userCf)<-c("userId","itemId","score")
   userCf$userId<-as.character(userCf$userId)
   userCf$itemId<-as.character(userCf$itemId)
